@@ -1,0 +1,9 @@
+version: '3.9'
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: "<user>"
+      POSTGRES_PASSWORD: "<pwd>"
+      POSTGRES_DB: "tasks"
+      POSTGRES_HOST: "localhost"
+      POSTGRES_PORT: "5432"

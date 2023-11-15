@@ -1,44 +1,44 @@
 package com.example.plugins
 
+import com.example.models.Task
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.config.yaml.*
 import java.sql.*
 import kotlinx.coroutines.*
 
 fun Application.configureDatabases() {
-    val dbConnection: Connection = connectToPostgres(embedded = true)
-    val cityService = CityService(dbConnection)
+    val dbConnection: Connection = connectToPostgres(embedded = false)
+    val taskManager = TaskManager(dbConnection)
+
     routing {
-        // Create city
-        post("/cities") {
-            val city = call.receive<City>()
-            val id = cityService.create(city)
+        post("/tasks") {
+            val task = call.receive<Task>()
+            val id = taskManager.create(task)
             call.respond(HttpStatusCode.Created, id)
         }
-        // Read city
-        get("/cities/{id}") {
+        get("/tasks/{id}") {
             val id = call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("Invalid ID")
             try {
-                val city = cityService.read(id)
-                call.respond(HttpStatusCode.OK, city)
+                val task = taskManager.read(id)
+                call.respond(HttpStatusCode.OK, task)
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.NotFound)
             }
         }
-        // Update city
-        put("/cities/{id}") {
+        put("/tasks/{id}") {
             val id = call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("Invalid ID")
-            val user = call.receive<City>()
-            cityService.update(id, user)
+            val user = call.receive<Task>()
+            taskManager.update(id, user)
             call.respond(HttpStatusCode.OK)
         }
         // Delete city
-        delete("/cities/{id}") {
+        delete("/tasks/{id}") {
             val id = call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("Invalid ID")
-            cityService.delete(id)
+            taskManager.delete(id)
             call.respond(HttpStatusCode.OK)
         }
     }
@@ -67,12 +67,18 @@ fun Application.configureDatabases() {
  * */
 fun Application.connectToPostgres(embedded: Boolean): Connection {
     Class.forName("org.postgresql.Driver")
-    if (embedded) {
-        return DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "root", "")
+    return if (embedded) {
+        DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "root", "")
     } else {
-        val url = environment.config.property("postgres.url").getString()
-        val user = environment.config.property("postgres.user").getString()
-        val password = environment.config.property("postgres.password").getString()
+        val configs = YamlConfig("postgres.yaml")
+
+        val dbName = configs?.property("services.postgres.environment.POSTGRES_DB")?.getString()
+        val dbHost = configs?.property("services.postgres.environment.POSTGRES_HOST")?.getString()
+        val dbPort = configs?.property("services.postgres.environment.POSTGRES_PORT")?.getString()
+        val url = "jdbc:postgresql://$dbHost:$dbPort/$dbName"
+
+        val user = configs?.property("services.postgres.environment.POSTGRES_USER")?.getString()
+        val password = configs?.property("services.postgres.environment.POSTGRES_PASSWORD")?.getString()
 
         return DriverManager.getConnection(url, user, password)
     }
