@@ -21,6 +21,7 @@ class TaskManager(private val connection: Connection) {
                 STATUS VARCHAR(255)
             );"""
         private const val SELECT_TASK_BY_ID = "SELECT * FROM TASKS WHERE ID = ?"
+        private const val SELECT_ALL_TASKS = "SELECT * FROM TASKS"
         private const val INSERT_TASK =
             "INSERT INTO TASKS (TITLE, DESCRIPTION, DUE_DATE, PRIORITY_LEVEL, STATUS) VALUES (?, ?, ?, ?, ?)"
         private const val UPDATE_TASK =
@@ -57,12 +58,14 @@ class TaskManager(private val connection: Connection) {
         val resultSet = statement.executeQuery()
 
         if (resultSet.next()) {
+            val taskId = resultSet.getInt("ID")
             val title = resultSet.getString("TITLE")
             val description = resultSet.getString("DESCRIPTION")
             val dueDate = resultSet.getTimestamp("DUE_DATE")
             val priorityLevel = resultSet.getString("PRIORITY_LEVEL")
             val status = resultSet.getString("STATUS")
             return@withContext Task(
+                taskId,
                 title,
                 description,
                 DateTimeHelper.convertToLocalDateTime(dueDate),
@@ -71,6 +74,37 @@ class TaskManager(private val connection: Connection) {
             )
         } else {
             throw Exception("Record not found")
+        }
+    }
+
+    suspend fun readAll(): List<Task> = withContext(Dispatchers.IO) {
+        val statement = connection.prepareStatement(SELECT_ALL_TASKS)
+        val resultSet = statement.executeQuery()
+
+        val retrievedTasks = mutableListOf<Task>()
+        while (resultSet.next()) {
+            val taskId = resultSet.getInt("ID")
+            val title = resultSet.getString("TITLE")
+            val description = resultSet.getString("DESCRIPTION")
+            val dueDate = resultSet.getTimestamp("DUE_DATE")
+            val priorityLevel = resultSet.getString("PRIORITY_LEVEL")
+            val status = resultSet.getString("STATUS")
+
+            retrievedTasks.add(
+                Task(
+                    taskId,
+                    title,
+                    description,
+                    DateTimeHelper.convertToLocalDateTime(dueDate),
+                    PriorityLevel.fromString(priorityLevel),
+                    TaskStatus.fromString(status)
+                )
+            )
+        }
+        if (retrievedTasks.isEmpty()) {
+            throw Exception("No records found")
+        } else {
+            return@withContext retrievedTasks
         }
     }
 
