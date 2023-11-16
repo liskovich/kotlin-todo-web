@@ -5,6 +5,7 @@ val logback_version: String by project
 val postgres_version: String by project
 val h2_version: String by project
 plugins {
+    application
     kotlin("jvm") version "1.9.20"
     id("io.ktor.plugin") version "2.3.6"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
@@ -43,3 +44,17 @@ dependencies {
     testImplementation("io.ktor:ktor-server-tests-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 }
+
+//tasks {
+//    shadowJar {
+//        manifest {
+//            attributes(Pair("Main-class", "com.example.ApplicationKt"))
+//        }
+//    }
+//}
+//
+//ktor {
+//    fatJar {
+//        archiveFileName.set("com.example.hw4_Liskovskis-$version-all.jar")
+//    }
+//}

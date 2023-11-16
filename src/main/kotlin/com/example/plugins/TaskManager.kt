@@ -1,9 +1,6 @@
 package com.example.plugins
 
-import com.example.models.DateTimeHelper
-import com.example.models.PriorityLevel
-import com.example.models.Task
-import com.example.models.TaskStatus
+import com.example.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.sql.Connection
@@ -35,7 +32,7 @@ class TaskManager(private val connection: Connection) {
         statement.executeUpdate(CREATE_TABLE_TASKS)
     }
 
-    suspend fun create(task: Task): Int = withContext(Dispatchers.IO) {
+    suspend fun create(task: TaskRequest): Int = withContext(Dispatchers.IO) {
         val statement = connection.prepareStatement(INSERT_TASK, Statement.RETURN_GENERATED_KEYS)
         statement.setString(1, task.title)
         statement.setString(2, task.description)
@@ -108,13 +105,14 @@ class TaskManager(private val connection: Connection) {
         }
     }
 
-    suspend fun update(id: Int, task: Task) = withContext(Dispatchers.IO) {
+    suspend fun update(id: Int, task: TaskRequest) = withContext(Dispatchers.IO) {
         val statement = connection.prepareStatement(UPDATE_TASK)
         statement.setString(1, task.title)
         statement.setString(2, task.description)
         statement.setTimestamp(3, DateTimeHelper.convertToSqlTimestamp(task.dueDate))
         statement.setString(4, task.priorityLevel.toString())
         statement.setString(5, task.status.toString())
+        statement.setInt(6, id)
         statement.executeUpdate()
     }
 

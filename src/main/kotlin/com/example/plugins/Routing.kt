@@ -12,9 +12,6 @@ import kotlinx.serialization.Serializable
 fun Application.configureRouting() {
     install(Resources)
     routing {
-        get("/") {
-            call.respondText("Hello World!")
-        }
         // Static plugin. Try to access `/static/index.html`
         static("/static") {
             resources("static")

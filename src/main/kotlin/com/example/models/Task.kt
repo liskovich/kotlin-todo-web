@@ -7,13 +7,26 @@ import java.time.LocalDateTime
 
 @Serializable
 data class Task(
+    val id: Int,
     val title: String,
     val description: String,
     @Serializable(with = LocalDateTimeSerializer::class)
     @Contextual
     val dueDate: LocalDateTime,
     val priorityLevel: PriorityLevel,
-    val status: TaskStatus)
+    val status: TaskStatus
+)
+
+@Serializable
+data class TaskRequest(
+    val title: String,
+    val description: String,
+    @Serializable(with = LocalDateTimeSerializer::class)
+    @Contextual
+    val dueDate: LocalDateTime,
+    val priorityLevel: PriorityLevel,
+    val status: TaskStatus
+)
 
 @Serializable
 enum class PriorityLevel {

@@ -1,22 +1,24 @@
 package com.example.plugins
 
-import com.example.models.Task
+import com.example.models.*
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.config.*
+import io.ktor.server.config.yaml.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.config.yaml.*
-import java.sql.*
 import kotlinx.coroutines.*
+import java.sql.*
 
 fun Application.configureDatabases() {
     val dbConnection: Connection = connectToPostgres(embedded = false)
     val taskManager = TaskManager(dbConnection)
 
+    // TODO: add more advanced error handling
     routing {
         post("/tasks") {
-            val task = call.receive<Task>()
+            val task = call.receive<TaskRequest>()
             val id = taskManager.create(task)
             call.respond(HttpStatusCode.Created, id)
         }
@@ -29,13 +31,21 @@ fun Application.configureDatabases() {
                 call.respond(HttpStatusCode.NotFound)
             }
         }
+        // TODO: add filters to it
+        get("/tasks") {
+            try {
+                val tasks = taskManager.readAll()
+                call.respond(HttpStatusCode.OK, tasks)
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.OK, "No tasks yet")
+            }
+        }
         put("/tasks/{id}") {
             val id = call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("Invalid ID")
-            val user = call.receive<Task>()
-            taskManager.update(id, user)
+            val task = call.receive<TaskRequest>()
+            taskManager.update(id, task)
             call.respond(HttpStatusCode.OK)
         }
-        // Delete city
         delete("/tasks/{id}") {
             val id = call.parameters["id"]?.toInt() ?: throw IllegalArgumentException("Invalid ID")
             taskManager.delete(id)
@@ -73,12 +83,20 @@ fun Application.connectToPostgres(embedded: Boolean): Connection {
         val configs = YamlConfig("postgres.yaml")
 
         val dbName = configs?.property("services.postgres.environment.POSTGRES_DB")?.getString()
+//        val dbName = environment.config.property("postgres.db").getString()
         val dbHost = configs?.property("services.postgres.environment.POSTGRES_HOST")?.getString()
+//        val dbHost = environment.config.property("postgres.host").getString()
         val dbPort = configs?.property("services.postgres.environment.POSTGRES_PORT")?.getString()
+//        val dbPort = environment.config.property("postgres.port").getString()
         val url = "jdbc:postgresql://$dbHost:$dbPort/$dbName"
 
+        // TODO: remove in prod
+        println("\n\n\n CONNECTION URL TO DB: $url \n\n\n")
+
         val user = configs?.property("services.postgres.environment.POSTGRES_USER")?.getString()
+//        val user = environment.config.property("postgres.user").getString()
         val password = configs?.property("services.postgres.environment.POSTGRES_PASSWORD")?.getString()
+//        val password = environment.config.property("postgres.password").getString()
 
         return DriverManager.getConnection(url, user, password)
     }
