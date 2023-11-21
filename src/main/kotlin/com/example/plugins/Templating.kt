@@ -24,10 +24,14 @@ fun Application.configureTemplating() {
         get("/") {
             try {
                 val tasks = taskManager.readAll()
-                call.respond(FreeMarkerContent("index.ftl", mapOf("tasks" to tasks)))
+                if (tasks.isEmpty()) {
+                    call.respond(FreeMarkerContent("index_empty.ftl", model = null))
+                } else {
+                    call.respond(FreeMarkerContent("index.ftl", mapOf("tasks" to tasks)))
+                }
             } catch (e: Exception) {
-                // TODO: format properly
-                call.respond(FreeMarkerContent("index.ftl", mapOf("tasks" to e.message)))
+                println(e.message)
+                call.respond(FreeMarkerContent("error.ftl", model = null))
             }
         }
         get("/todos/create") {
@@ -36,7 +40,6 @@ fun Application.configureTemplating() {
         post("/todos") {
             try {
                 val formParameters = call.receiveParameters()
-                // TODO: check whether the date is not in past
                 val createdTask = TaskRequest(
                     formParameters.getOrFail("title"),
                     formParameters.getOrFail("description"),
@@ -47,8 +50,8 @@ fun Application.configureTemplating() {
                 taskManager.create(createdTask)
                 call.respondRedirect("/")
             } catch (e: Exception) {
-                // TODO: format properly
-                call.respondRedirect("/")
+                println(e.message)
+                call.respond(FreeMarkerContent("error.ftl", mapOf("errorText" to e.message)))
             }
         }
         get("/todos/{id}") {
@@ -57,8 +60,8 @@ fun Application.configureTemplating() {
                 val task = taskManager.read(id)
                 call.respond(FreeMarkerContent("task_detail.ftl", mapOf("task" to task)))
             } catch (e: Exception) {
-                // TODO: format properly
-                call.respond(FreeMarkerContent("task_detail.ftl", mapOf("task" to "No such task found")))
+                println(e.message)
+                call.respond(FreeMarkerContent("error.ftl", mapOf("errorText" to e.message)))
             }
         }
         post("/todos/{id}/delete") {
@@ -67,8 +70,8 @@ fun Application.configureTemplating() {
                 taskManager.delete(id)
                 call.respondRedirect("/")
             } catch (e: Exception) {
-                // TODO: format properly
-                call.respondRedirect("/")
+                println(e.message)
+                call.respond(FreeMarkerContent("error.ftl", model = null))
             }
         }
         get("/todos/{id}/edit") {
@@ -77,15 +80,14 @@ fun Application.configureTemplating() {
                 val task = taskManager.read(id)
                 call.respond(FreeMarkerContent("task_edit.ftl", mapOf("task" to task)))
             } catch (e: Exception) {
-                // TODO: format properly
-                call.respond(FreeMarkerContent("task_edit.ftl", mapOf("task" to "No such task found")))
+                println(e.message)
+                call.respond(FreeMarkerContent("error.ftl", mapOf("errorText" to e.message)))
             }
         }
         post("/todos/{id}/edit") {
             try {
                 val id = call.parameters.getOrFail<Int>("id").toInt()
                 val formParameters = call.receiveParameters()
-                // TODO: check whether the date is not in past
                 val updatedTask = TaskRequest(
                     formParameters.getOrFail("title"),
                     formParameters.getOrFail("description"),
@@ -96,8 +98,8 @@ fun Application.configureTemplating() {
                 taskManager.update(id, updatedTask)
                 call.respondRedirect("/")
             } catch (e: Exception) {
-                // TODO: format properly
-                call.respondRedirect("/")
+                println(e.message)
+                call.respond(FreeMarkerContent("error.ftl", model = null))
             }
         }
     }

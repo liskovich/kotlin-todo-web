@@ -1,9 +1,18 @@
 <html>
+<head>
+    <script>
+        function formatDate(isoDate) {
+            const date = new Date(isoDate);
+            const options = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' };
+            return date.toLocaleDateString('en-US', options);
+        }
+    </script>
+</head>
 <body>
 <h1>Task: ${task.title}</h1>
 <div>
     <h3>
-        ${task.dueDate}
+        <script>document.write(formatDate('${task.dueDate}'))</script>
     </h3>
     <p>Priority: ${task.priorityLevel}</p>
     <p>Status: ${task.status}</p>
