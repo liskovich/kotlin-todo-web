@@ -74,6 +74,18 @@ class TaskManager(private val connection: Connection) {
         }
     }
 
+//    suspend fun isDatabaseEmpty(): Boolean = withContext(Dispatchers.IO) {
+//        val statement = connection.prepareStatement(SELECT_ALL_TASKS)
+//        val resultSet = statement.executeQuery()
+//        return@withContext !resultSet.next()
+//    }
+
+    fun isDatabaseEmpty(): Boolean {
+        val statement = connection.prepareStatement(SELECT_ALL_TASKS)
+        val resultSet = statement.executeQuery()
+        return !resultSet.next()
+    }
+
     suspend fun readAll(): List<Task> = withContext(Dispatchers.IO) {
         val statement = connection.prepareStatement(SELECT_ALL_TASKS)
         val resultSet = statement.executeQuery()

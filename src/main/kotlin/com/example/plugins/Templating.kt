@@ -13,6 +13,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.util.*
 import java.sql.Connection
 import java.time.LocalDateTime
+import java.time.temporal.TemporalAdjusters
 
 fun Application.configureTemplating() {
     val dbConnection: Connection = connectToPostgres(embedded = false)
@@ -25,14 +26,44 @@ fun Application.configureTemplating() {
         get("/") {
             try {
                 val tasks = taskManager.readAll()
-                if (tasks.isEmpty()) {
-                    call.respond(FreeMarkerContent("index_empty.ftl", model = null))
-                } else {
-                    call.respond(FreeMarkerContent("index.ftl", mapOf("tasks" to tasks)))
+
+                val today = LocalDateTime.now()
+                val endOfThisWeek = today.with(TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY))
+                val endOfNextWeek =
+                    today.plusWeeks(1).with(TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY))
+
+                val totalTasks = tasks.count()
+                val completedTasks = tasks.count {
+                    it.status == TaskStatus.DONE
                 }
+                val overdueTasks = tasks.count {
+                    it.status != TaskStatus.DONE && it.dueDate.isBefore(today)
+                }
+                val tasksInProgress = tasks.count {
+                    it.status == TaskStatus.PROGRESS
+                }
+                val tasksDueThisWeek = tasks.count {
+                    it.dueDate.isAfter(today) && it.dueDate.isBefore(endOfThisWeek)
+                }
+                val tasksDueNextWeek = tasks.count {
+                    it.dueDate.isAfter(endOfThisWeek) && it.dueDate.isBefore(endOfNextWeek)
+                }
+                call.respond(
+                    FreeMarkerContent(
+                        "index.ftl", mapOf(
+                            "tasks" to tasks,
+                            "completedTasks" to completedTasks,
+                            "totalTasks" to totalTasks,
+                            "overdueTasks" to overdueTasks,
+                            "tasksDueThisWeek" to tasksDueThisWeek,
+                            "tasksDueNextWeek" to tasksDueNextWeek,
+                            "tasksInProgress" to tasksInProgress,
+                        )
+                    )
+                )
             } catch (e: Exception) {
                 println(e.message)
-                call.respond(FreeMarkerContent("error.ftl", model = null))
+                call.respond(FreeMarkerContent("index_empty.ftl", model = null))
             }
         }
         get("/todos/create") {
@@ -106,13 +137,17 @@ fun Application.configureTemplating() {
         get("/todos/dashboard") {
             try {
                 val tasks = taskManager.readAll()
-                call.respond(FreeMarkerContent("task_sort_filter.ftl", mapOf(
-                    "tasks" to tasks,
-                    "fromDate" to "",
-                    "toDate" to "",
-                    "selectedPriorityLevel" to "",
-                    "selectedSatus" to ""
-                )))
+                call.respond(
+                    FreeMarkerContent(
+                        "task_sort_filter.ftl", mapOf(
+                            "tasks" to tasks,
+                            "fromDate" to "",
+                            "toDate" to "",
+                            "selectedPriorityLevel" to "",
+                            "selectedSatus" to ""
+                        )
+                    )
+                )
             } catch (e: Exception) {
                 println(e.message)
                 call.respond(FreeMarkerContent("error.ftl", model = null))
@@ -129,16 +164,22 @@ fun Application.configureTemplating() {
                 val filteredTasks = tasks.filter { task ->
                     (fromDate.isNullOrEmpty() || task.dueDate >= LocalDateTime.parse("${fromDate}T00:00"))
                             && (toDate.isNullOrEmpty() || task.dueDate <= LocalDateTime.parse("${toDate}T23:59"))
-                            && (priorityLevel.isNullOrEmpty() || task.priorityLevel == PriorityLevel.fromString(priorityLevel))
+                            && (priorityLevel.isNullOrEmpty() || task.priorityLevel == PriorityLevel.fromString(
+                        priorityLevel
+                    ))
                             && (status.isNullOrEmpty() || task.status == TaskStatus.fromString(status))
                 }
-                call.respond(FreeMarkerContent("task_sort_filter.ftl", mapOf(
-                    "tasks" to filteredTasks,
-                    "fromDate" to fromDate,
-                    "toDate" to toDate,
-                    "selectedPriorityLevel" to priorityLevel,
-                    "selectedSatus" to status
-                )))
+                call.respond(
+                    FreeMarkerContent(
+                        "task_sort_filter.ftl", mapOf(
+                            "tasks" to filteredTasks,
+                            "fromDate" to fromDate,
+                            "toDate" to toDate,
+                            "selectedPriorityLevel" to priorityLevel,
+                            "selectedSatus" to status
+                        )
+                    )
+                )
             } catch (e: Exception) {
                 println(e.message)
                 call.respond(FreeMarkerContent("error.ftl", model = null))

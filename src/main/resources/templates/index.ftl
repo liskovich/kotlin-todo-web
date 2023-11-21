@@ -15,9 +15,6 @@
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        h1, h3 {
-            margin: 0;
-        }
         p {
             margin-bottom: 10px;
         }
@@ -89,6 +86,24 @@
         .TODO-status {
             background-color: blue;
         }
+        /* Task stats styles */
+        .task-stats {
+            background-color: #f2f2f2;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stat-item {
+            margin-bottom: 10px;
+        }
+        .stat-label {
+            font-weight: bold;
+        }
+        .stat-value {
+            font-size: 18px;
+        }
     </style>
     <script>
         function formatDate(isoDate) {
@@ -100,6 +115,31 @@
 </head>
 <body>
 <div class="container">
+    <!-- Task metrics -->
+    <h1>Stats & metrics:</h1>
+    <div class="task-stats">
+        <div class="stat-item">
+            <span class="stat-label">Completed Tasks:</span>
+            <span class="stat-value">${completedTasks} / ${totalTasks}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Overdue Tasks:</span>
+            <span class="stat-value">${overdueTasks}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Tasks Due This Week:</span>
+            <span class="stat-value">${tasksDueThisWeek}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Tasks Due Next Week:</span>
+            <span class="stat-value">${tasksDueNextWeek}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Tasks In Progress:</span>
+            <span class="stat-value">${tasksInProgress} / ${totalTasks}</span>
+        </div>
+    </div>
+    <!-- The main list of tasks -->
     <div>
         <a href="/todos/create">Add a new task</a>
         <br>

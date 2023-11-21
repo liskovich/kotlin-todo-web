@@ -8,14 +8,62 @@ import io.ktor.server.config.yaml.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.util.*
 import kotlinx.coroutines.*
 import java.sql.*
+import java.time.LocalDateTime
+import kotlin.random.Random
 
 fun Application.configureDatabases() {
     val dbConnection: Connection = connectToPostgres(embedded = false)
     val taskManager = TaskManager(dbConnection)
 
-    // TODO: add more advanced error handling
+    // Launch a coroutine to suspend the "isDatabaseEmpty" function
+    val scope = CoroutineScope(Dispatchers.Default)
+    val job = scope.launch {
+        if (taskManager.isDatabaseEmpty()) {
+            try {
+                println("\n\n\nThe table is empty, populating with sample data.\n\n\n")
+                val currentDateTime = LocalDateTime.now()
+                val pastDateTime = currentDateTime.minusDays(1)
+
+                val tasks = mutableListOf<TaskRequest>()
+                repeat(4) {
+                    val futureDateTime = currentDateTime.plusDays(Random.nextLong(1, 10))
+                    val task = TaskRequest(
+                        title = "Sample task $it",
+                        description = "Description for the sample task $it",
+                        dueDate = DateTimeHelper.convertToLocalDateTime(Timestamp.valueOf(futureDateTime)),
+                        priorityLevel = PriorityLevel.values().random(),
+                        status = TaskStatus.values().random()
+                    )
+                    tasks.add(task)
+                }
+
+                // Adding one task with a past due date
+                val pastDueTask = TaskRequest(
+                    title = "Past Due Task",
+                    description = "Description for Past Due Task",
+                    dueDate = DateTimeHelper.convertToLocalDateTime(Timestamp.valueOf(pastDateTime)),
+                    priorityLevel = PriorityLevel.values().random(),
+                    status = TaskStatus.values().random()
+                )
+                tasks.add(pastDueTask)
+
+                for (t in tasks) {
+                    taskManager.create(t)
+                }
+                println("\n\n\nSample data inserted successfully!\n\n\n")
+            } catch (e: Exception) {
+                println("\n\n\nSome error occurred while seeding DB: ${e.message}\n\n\n")
+            }
+        }
+    }
+    runBlocking {
+        job.join()
+    }
+    scope.cancel()
+
     routing {
         post("/tasks") {
             val task = call.receive<TaskRequest>()
@@ -31,7 +79,6 @@ fun Application.configureDatabases() {
                 call.respond(HttpStatusCode.NotFound)
             }
         }
-        // TODO: add filters to it
         get("/tasks") {
             try {
                 val tasks = taskManager.readAll()
@@ -83,20 +130,12 @@ fun Application.connectToPostgres(embedded: Boolean): Connection {
         val configs = YamlConfig("postgres.yaml")
 
         val dbName = configs?.property("services.postgres.environment.POSTGRES_DB")?.getString()
-//        val dbName = environment.config.property("postgres.db").getString()
         val dbHost = configs?.property("services.postgres.environment.POSTGRES_HOST")?.getString()
-//        val dbHost = environment.config.property("postgres.host").getString()
         val dbPort = configs?.property("services.postgres.environment.POSTGRES_PORT")?.getString()
-//        val dbPort = environment.config.property("postgres.port").getString()
         val url = "jdbc:postgresql://$dbHost:$dbPort/$dbName"
 
-        // TODO: remove in prod
-        println("\n\n\n CONNECTION URL TO DB: $url \n\n\n")
-
         val user = configs?.property("services.postgres.environment.POSTGRES_USER")?.getString()
-//        val user = environment.config.property("postgres.user").getString()
         val password = configs?.property("services.postgres.environment.POSTGRES_PASSWORD")?.getString()
-//        val password = environment.config.property("postgres.password").getString()
 
         return DriverManager.getConnection(url, user, password)
     }

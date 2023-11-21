@@ -11,7 +11,9 @@ class DateTimeHelper {
         }
 
         fun convertToLocalDateTime(sqlTimestamp: Timestamp): LocalDateTime {
-            return sqlTimestamp.toLocalDateTime()
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
+            val formattedString = formatter.format(sqlTimestamp.toLocalDateTime())
+            return LocalDateTime.parse(formattedString, formatter)
         }
 
         fun convertToLocalDateTime(dateString: String): LocalDateTime {
